@@ -43,7 +43,7 @@ type Route struct {
 	ShortName   string
 	LongName    string
 	Description *string
-	Type        RouteType
+	VehicleType RouteType
 	URL         *string
 	Color       *string
 	TextColor   *string
@@ -223,7 +223,7 @@ func Load(feedPath string, loadStopTimes bool) Feed {
 			ShortName:   rsn,
 			LongName:    rln,
 			Description: desc,
-			Type:        routeTypeID,
+			VehicleType: routeTypeID,
 			URL:         url,
 			Color:       color,
 			TextColor:   textColor,
