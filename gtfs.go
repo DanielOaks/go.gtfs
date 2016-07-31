@@ -22,14 +22,14 @@ type Feed struct {
 }
 
 type Route struct {
-	Id        string
+	ID        string
 	ShortName string
 	LongName  string
 	Trips     []*Trip
 }
 
 type Trip struct {
-	Id        string
+	ID        string
 	Shape     *Shape
 	Route     *Route
 	Service   string
@@ -46,12 +46,12 @@ type Headsign struct {
 }
 
 type Shape struct {
-	Id     string
+	ID     string
 	Coords []Coord
 }
 
 type Stop struct {
-	Id    string
+	ID    string
 	Name  string
 	Coord Coord
 }
@@ -64,7 +64,7 @@ type StopTime struct {
 }
 
 type CalendarEntry struct {
-	ServiceId string
+	ServiceID string
 	Days      []string
 }
 
@@ -115,8 +115,8 @@ func (feed *Feed) readCsv(filename string, f func(map[string]interface{})) error
 	return nil
 }
 
-func Load(feed_path string, loadStopTimes bool) Feed {
-	f := Feed{Dir: feed_path}
+func Load(feedPath string, loadStopTimes bool) Feed {
+	f := Feed{Dir: feedPath}
 	f.Routes = make(map[string]*Route)
 	f.Shapes = make(map[string]*Shape)
 	f.Stops = make(map[string]*Stop)
@@ -124,7 +124,7 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 	f.CalendarEntries = make(map[string]CalendarEntry)
 
 	f.readCsv("calendar.txt", func(s map[string]interface{}) {
-		c := CalendarEntry{ServiceId: s["service_id"].(string), Days: []string{s["monday"].(string), s["tuesday"].(string), s["wednesday"].(string), s["thursday"].(string), s["friday"].(string), s["saturday"].(string), s["sunday"].(string)}}
+		c := CalendarEntry{ServiceID: s["service_id"].(string), Days: []string{s["monday"].(string), s["tuesday"].(string), s["wednesday"].(string), s["thursday"].(string), s["friday"].(string), s["saturday"].(string), s["sunday"].(string)}}
 		f.CalendarEntries[s["service_id"].(string)] = c
 	})
 
@@ -133,13 +133,13 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 	var curShape *Shape
 	var found = false
 	f.readCsv("shapes.txt", func(s map[string]interface{}) {
-		shape_id := s["shape_id"].(string)
-		if !found || shape_id != curShape.Id {
+		shapeID := s["shape_id"].(string)
+		if !found || shapeID != curShape.ID {
 			if found {
-				f.Shapes[curShape.Id] = curShape
+				f.Shapes[curShape.ID] = curShape
 			}
 			found = true
-			curShape = &Shape{Id: shape_id}
+			curShape = &Shape{ID: shapeID}
 		}
 		lon, _ := strconv.ParseFloat(s["shape_pt_lon"].(string), 64)
 		lat, _ := strconv.ParseFloat(s["shape_pt_lat"].(string), 64)
@@ -147,7 +147,7 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 		curShape.Coords = append(curShape.Coords, Coord{Lat: lat, Lon: lon, Seq: seq})
 	})
 	if found {
-		f.Shapes[curShape.Id] = curShape
+		f.Shapes[curShape.ID] = curShape
 	}
 
 	// sort coords by their sequence
@@ -159,48 +159,48 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 		rsn := strings.TrimSpace(s["route_short_name"].(string))
 		rln := strings.TrimSpace(s["route_long_name"].(string))
 		id := strings.TrimSpace(s["route_id"].(string))
-		f.Routes[id] = &Route{Id: id, ShortName: rsn, LongName: rln}
+		f.Routes[id] = &Route{ID: id, ShortName: rsn, LongName: rln}
 	})
 
 	f.readCsv("trips.txt", func(s map[string]interface{}) {
-		route_id := s["route_id"].(string)
+		routeID := s["route_id"].(string)
 		service := s["service_id"].(string)
-		trip_id := s["trip_id"].(string)
+		tripID := s["trip_id"].(string)
 		direction := s["direction_id"].(string)
-		shape_id := s["shape_id"].(string)
+		shapeID := s["shape_id"].(string)
 		headsign := s["trip_headsign"].(string)
 
 		var shape *Shape
-		shape = f.Shapes[shape_id]
+		shape = f.Shapes[shapeID]
 		var trip Trip
 		trip.StopTimes = []StopTime{}
-		f.Trips[trip_id] = &trip
+		f.Trips[tripID] = &trip
 
-		route := f.Routes[route_id]
-		trip = Trip{Shape: shape, Route: route, Id: trip_id, Direction: direction, Service: service, Headsign: headsign}
+		route := f.Routes[routeID]
+		trip = Trip{Shape: shape, Route: route, ID: tripID, Direction: direction, Service: service, Headsign: headsign}
 		route.Trips = append(route.Trips, &trip)
-		f.Routes[route_id] = route
+		f.Routes[routeID] = route
 	})
 
 	f.readCsv("stops.txt", func(s map[string]interface{}) {
-		stop_id := s["stop_id"].(string)
-		stop_name := s["stop_name"].(string)
-		stop_lat, _ := strconv.ParseFloat(s["stop_lat"].(string), 64)
-		stop_lon, _ := strconv.ParseFloat(s["stop_lon"].(string), 64)
-		coord := Coord{Lat: stop_lat, Lon: stop_lon}
-		f.Stops[stop_id] = &Stop{Coord: coord, Name: stop_name, Id: stop_id}
+		stopID := s["stop_id"].(string)
+		stopName := s["stop_name"].(string)
+		stopLat, _ := strconv.ParseFloat(s["stop_lat"].(string), 64)
+		stopLon, _ := strconv.ParseFloat(s["stop_lon"].(string), 64)
+		coord := Coord{Lat: stopLat, Lon: stopLon}
+		f.Stops[stopID] = &Stop{Coord: coord, Name: stopName, ID: stopID}
 	})
 
 	if !loadStopTimes {
 		return f
 	}
 	f.readCsv("stop_times.txt", func(s map[string]interface{}) {
-		trip_id := s["trip_id"].(string)
-		stop_id := s["stop_id"].(string)
+		tripID := s["trip_id"].(string)
+		stopID := s["stop_id"].(string)
 		seq, _ := strconv.Atoi(s["stop_sequence"].(string))
 		time := Hmstoi(s["arrival_time"].(string))
-		stop := f.Stops[stop_id]
-		trip := f.Trips[trip_id]
+		stop := f.Stops[stopID]
+		trip := f.Trips[tripID]
 		newStopTime := StopTime{Trip: trip, Stop: stop, Seq: seq, Time: time}
 		trip.StopTimes = append(trip.StopTimes, newStopTime)
 	})
@@ -234,7 +234,7 @@ func (route Route) Shapes() []*Shape {
 	}
 
 	retval := []*Shape{}
-	for k, _ := range hsh {
+	for k := range hsh {
 		retval = append(retval, k)
 	}
 	return retval
@@ -272,7 +272,7 @@ func (route Route) Stops() []*Stop {
 	}
 
 	retval := []*Stop{}
-	for k, _ := range stops {
+	for k := range stops {
 		retval = append(retval, k)
 	}
 	return retval
