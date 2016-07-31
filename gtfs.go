@@ -12,6 +12,7 @@ import (
 	tablib "github.com/agrison/go-tablib"
 )
 
+// Feed represents a collection of GTFS information.
 type Feed struct {
 	Dir             string
 	Routes          map[string]*Route
@@ -21,6 +22,7 @@ type Feed struct {
 	CalendarEntries map[string]CalendarEntry
 }
 
+// Route represents a single "line", and is made up of one or more trips.
 type Route struct {
 	ID        string
 	ShortName string
@@ -28,6 +30,7 @@ type Route struct {
 	Trips     []*Trip
 }
 
+// Trip reprents a journey taken by a vehicle through stops.
 type Trip struct {
 	ID        string
 	Shape     *Shape
@@ -40,22 +43,26 @@ type Trip struct {
 	StopTimes []StopTime
 }
 
+// Headsign is the text representing a trip that appears on a sign, such as a bus or train display.
 type Headsign struct {
 	Direction string
 	Text      string
 }
 
+// Shape describes the physical path that a vehicle takes along a Trip.
 type Shape struct {
 	ID     string
 	Coords []Coord
 }
 
+// Stop represents a location where vehicles stop to pick up or drop off passengers.
 type Stop struct {
 	ID    string
 	Name  string
 	Coord Coord
 }
 
+// StopTime defines when a vehicle arrives at a location, how long it stays there, and when it departs.
 type StopTime struct {
 	Stop *Stop
 	Trip *Trip
@@ -63,23 +70,27 @@ type StopTime struct {
 	Seq  int
 }
 
+// CalendarEntry represents something [TODO(dan): What does this represent?]
 type CalendarEntry struct {
 	ServiceID string
 	Days      []string
 }
 
+// StopTimeBySeq is used to sort StopTimes by their sequence number.
 type StopTimeBySeq []StopTime
 
 func (a StopTimeBySeq) Len() int           { return len(a) }
 func (a StopTimeBySeq) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a StopTimeBySeq) Less(i, j int) bool { return a[i].Seq < a[j].Seq }
 
+// Coord represents a coordinate.
 type Coord struct {
 	Lat float64
 	Lon float64
 	Seq int
 }
 
+// CoordBySeq is used to sort Coords by their sequence number.
 type CoordBySeq []Coord
 
 func (a CoordBySeq) Len() int           { return len(a) }
@@ -115,6 +126,7 @@ func (feed *Feed) readCsv(filename string, f func(map[string]interface{})) error
 	return nil
 }
 
+// Load retrieves data from the given directory path and returns a Feed containing that data.
 func Load(feedPath string, loadStopTimes bool) Feed {
 	f := Feed{Dir: feedPath}
 	f.Routes = make(map[string]*Route)
@@ -214,17 +226,17 @@ func Load(feedPath string, loadStopTimes bool) Feed {
 	return f
 }
 
+// RouteByShortName searches for and returns a route based on its short name, if it exists.
 func (feed *Feed) RouteByShortName(shortName string) *Route {
 	for _, v := range feed.Routes {
 		if v.ShortName == shortName {
 			return v
 		}
 	}
-	//TODO error here
-	return &Route{}
+	return nil
 }
 
-// get All shapes for a route
+// Shapes returns all shapes for a route.
 func (route Route) Shapes() []*Shape {
 	// collect the unique list of shape pointers
 	hsh := make(map[*Shape]bool)
@@ -240,6 +252,7 @@ func (route Route) Shapes() []*Shape {
 	return retval
 }
 
+// LongestShape returns the longest shape in the route.
 func (route Route) LongestShape() *Shape {
 	max := 0
 	var shape *Shape
@@ -252,6 +265,7 @@ func (route Route) LongestShape() *Shape {
 	return shape
 }
 
+// Hmstoi returns the number of seconds for a given time string.
 func Hmstoi(str string) int {
 	components := strings.Split(str, ":")
 	hour, _ := strconv.Atoi(components[0])
@@ -261,6 +275,7 @@ func Hmstoi(str string) int {
 	return retval
 }
 
+// Stops returns all the stops on this route.
 func (route Route) Stops() []*Stop {
 	stops := make(map[*Stop]bool)
 	// can't assume the longest shape includes all stops
@@ -278,6 +293,7 @@ func (route Route) Stops() []*Stop {
 	return retval
 }
 
+// Headsigns returns the two headsigns for this route.
 func (route Route) Headsigns() []string {
 	max0 := 0
 	maxHeadsign0 := ""
