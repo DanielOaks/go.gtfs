@@ -11,7 +11,7 @@ func TestLoadRoutes(t *testing.T) {
 		t.Error("Feed should have at least one route")
 	}
 
-	res := feed.Routes["1093"].Id
+	res := feed.Routes["1093"].ID
 	if res != "1093" {
 		t.Errorf("Feed should have route IDs, got %s", res)
 	}
@@ -100,8 +100,8 @@ func TestLongestShape(t *testing.T) {
 
 	feed := Load("./fixtures", true)
 	res := feed.RouteByShortName("N").LongestShape()
-	if res.Id != "116466" {
-		t.Errorf("Longest shape should be 116466, got %s", res.Id)
+	if res.ID != "116466" {
+		t.Errorf("Longest shape should be 116466, got %s", res.ID)
 	}
 }
 
@@ -116,17 +116,17 @@ func TestRouteStops(t *testing.T) {
 }
 
 func TestTimeParsing(t *testing.T) {
-	res := Hmstoi("00:00:00")
+	res := hmstoi("00:00:00")
 	expected := 0
 	if res != expected {
 		t.Errorf("Expected %d, got %d", expected, res)
 	}
-	res = Hmstoi("23:59:59")
+	res = hmstoi("23:59:59")
 	expected = 86399
 	if res != expected {
 		t.Errorf("Expected %d, got %d", expected, res)
 	}
-	res = Hmstoi("12:34:56")
+	res = hmstoi("12:34:56")
 	expected = 45296
 	if res != expected {
 		t.Errorf("Expected %d, got %d", expected, res)
