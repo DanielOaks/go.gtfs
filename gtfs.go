@@ -133,7 +133,6 @@ func (feed *Feed) readCsv(filename string, f func(map[string]interface{})) error
 		rowIDs[i] = i
 	}
 
-	fmt.Println(filename, dataset.Height())
 	rows, err := dataset.Rows(rowIDs...)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("Could not load rows: %s", err.Error()))
