@@ -22,12 +22,32 @@ type Feed struct {
 	CalendarEntries map[string]CalendarEntry
 }
 
+// RouteType describes the type of vehicle uses a particular route.
+type RouteType int
+
+const (
+	LightRail RouteType = 0
+	Subway    RouteType = 1
+	Rail      RouteType = 2
+	Bus       RouteType = 3
+	Ferry     RouteType = 4
+	CableCar  RouteType = 5
+	Gondola   RouteType = 6
+	Funicular RouteType = 7
+)
+
 // Route represents a single "line", and is made up of one or more trips.
 type Route struct {
-	ID        string
-	ShortName string
-	LongName  string
-	Trips     []*Trip
+	ID          string
+	AgencyID    *string
+	ShortName   string
+	LongName    string
+	Description *string
+	Type        RouteType
+	URL         *string
+	Color       *string
+	TextColor   *string
+	Trips       []*Trip
 }
 
 // Trip reprents a journey taken by a vehicle through stops.
@@ -170,7 +190,45 @@ func Load(feedPath string, loadStopTimes bool) Feed {
 		rsn := strings.TrimSpace(s["route_short_name"].(string))
 		rln := strings.TrimSpace(s["route_long_name"].(string))
 		id := strings.TrimSpace(s["route_id"].(string))
-		f.Routes[id] = &Route{ID: id, ShortName: rsn, LongName: rln}
+		var aid *string
+		if s["agency_id"] != nil {
+			aidString := strings.TrimSpace(s["agency_id"].(string))
+			aid = &aidString
+		}
+		var desc *string
+		if s["description"] != nil {
+			descString := strings.TrimSpace(s["description"].(string))
+			desc = &descString
+		}
+		var url *string
+		if s["url"] != nil {
+			urlString := strings.TrimSpace(s["url"].(string))
+			url = &urlString
+		}
+		var color *string
+		if s["route_color"] != nil {
+			colorString := strings.TrimSpace(s["route_color"].(string))
+			color = &colorString
+		}
+		var textColor *string
+		if s["text_color"] != nil {
+			textColorString := strings.TrimSpace(s["text_color"].(string))
+			textColor = &textColorString
+		}
+		// we assume this will always be right
+		routeTypeInt, _ := strconv.Atoi(s["route_type"].(string))
+		routeTypeID := RouteType(routeTypeInt)
+		f.Routes[id] = &Route{
+			ID:          id,
+			AgencyID:    aid,
+			ShortName:   rsn,
+			LongName:    rln,
+			Description: desc,
+			Type:        routeTypeID,
+			URL:         url,
+			Color:       color,
+			TextColor:   textColor,
+		}
 	})
 
 	f.readCsv("trips.txt", func(s map[string]interface{}) {
