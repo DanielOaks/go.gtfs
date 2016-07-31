@@ -70,7 +70,6 @@ type StopTime struct {
 	Seq  int
 }
 
-// CalendarEntry represents something [TODO(dan): What does this represent?]
 type CalendarEntry struct {
 	ServiceID string
 	Days      []string
@@ -210,7 +209,7 @@ func Load(feedPath string, loadStopTimes bool) Feed {
 		tripID := s["trip_id"].(string)
 		stopID := s["stop_id"].(string)
 		seq, _ := strconv.Atoi(s["stop_sequence"].(string))
-		time := Hmstoi(s["arrival_time"].(string))
+		time := hmstoi(s["arrival_time"].(string))
 		stop := f.Stops[stopID]
 		trip := f.Trips[tripID]
 		newStopTime := StopTime{Trip: trip, Stop: stop, Seq: seq, Time: time}
@@ -265,8 +264,8 @@ func (route Route) LongestShape() *Shape {
 	return shape
 }
 
-// Hmstoi returns the number of seconds for a given time string.
-func Hmstoi(str string) int {
+// hmstoi returns the number of seconds for a given time string.
+func hmstoi(str string) int {
 	components := strings.Split(str, ":")
 	hour, _ := strconv.Atoi(components[0])
 	min, _ := strconv.Atoi(components[1])
