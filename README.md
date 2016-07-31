@@ -1,5 +1,5 @@
 
-	import "github.com/bdon/go.gtfs"
+	import "github.com/DanielOaks/go.gtfs"
 
 ## Examples
 

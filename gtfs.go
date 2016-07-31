@@ -1,13 +1,15 @@
 package gtfs
 
 import (
-	"encoding/csv"
-	"io"
-	"os"
+	"fmt"
+	"io/ioutil"
+	"log"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
+
+	tablib "github.com/agrison/go-tablib"
 )
 
 type Feed struct {
@@ -85,27 +87,32 @@ func (a CoordBySeq) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a CoordBySeq) Less(i, j int) bool { return a[i].Seq < a[j].Seq }
 
 // main utility function for reading GTFS files
-func (feed *Feed) readCsv(filename string, f func([]string)) {
-	file, err := os.Open(path.Join(feed.Dir, filename))
+func (feed *Feed) readCsv(filename string, f func(map[string]interface{})) error {
+	fileData, err := ioutil.ReadFile(path.Join(feed.Dir, filename))
 	if err != nil {
+		return err
 	}
-	defer file.Close()
-	reader := csv.NewReader(file)
-	reader.TrailingComma = true
-	firstLineSeen := false
-	for {
-		record, err := reader.Read()
-		if !firstLineSeen {
-			firstLineSeen = true
-			continue
-		}
-		if err == io.EOF {
-			break
-		} else if err != nil {
-		} else {
-			f(record)
-		}
+	dataset, err := tablib.LoadCSV(fileData)
+	if err != nil {
+		return err
 	}
+
+	// need to build list of rows to grab
+	rowIDs := make([]int, dataset.Height())
+	for i := range rowIDs {
+		rowIDs[i] = i
+	}
+
+	fmt.Println(filename, dataset.Height())
+	rows, err := dataset.Rows(rowIDs...)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("Could not load rows: %s", err.Error()))
+	}
+	for _, row := range rows {
+		f(row)
+	}
+
+	return nil
 }
 
 func Load(feed_path string, loadStopTimes bool) Feed {
@@ -116,17 +123,17 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 	f.Trips = make(map[string]*Trip)
 	f.CalendarEntries = make(map[string]CalendarEntry)
 
-	f.readCsv("calendar.txt", func(s []string) {
-		c := CalendarEntry{ServiceId: s[0], Days: s[1:8]}
-		f.CalendarEntries[s[0]] = c
+	f.readCsv("calendar.txt", func(s map[string]interface{}) {
+		c := CalendarEntry{ServiceId: s["service_id"].(string), Days: []string{s["monday"].(string), s["tuesday"].(string), s["wednesday"].(string), s["thursday"].(string), s["friday"].(string), s["saturday"].(string), s["sunday"].(string)}}
+		f.CalendarEntries[s["service_id"].(string)] = c
 	})
 
 	// we assume that this CSV is grouped by shape_id
 	// but this is not guaranteed in spec?
 	var curShape *Shape
 	var found = false
-	f.readCsv("shapes.txt", func(s []string) {
-		shape_id := s[0]
+	f.readCsv("shapes.txt", func(s map[string]interface{}) {
+		shape_id := s["shape_id"].(string)
 		if !found || shape_id != curShape.Id {
 			if found {
 				f.Shapes[curShape.Id] = curShape
@@ -134,9 +141,9 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 			found = true
 			curShape = &Shape{Id: shape_id}
 		}
-		lon, _ := strconv.ParseFloat(s[1], 64)
-		lat, _ := strconv.ParseFloat(s[2], 64)
-		seq, _ := strconv.Atoi(s[3])
+		lon, _ := strconv.ParseFloat(s["shape_pt_lon"].(string), 64)
+		lat, _ := strconv.ParseFloat(s["shape_pt_lat"].(string), 64)
+		seq, _ := strconv.Atoi(s["shape_pt_sequence"].(string))
 		curShape.Coords = append(curShape.Coords, Coord{Lat: lat, Lon: lon, Seq: seq})
 	})
 	if found {
@@ -148,20 +155,20 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 		sort.Sort(CoordBySeq(v.Coords))
 	}
 
-	f.readCsv("routes.txt", func(s []string) {
-		rsn := strings.TrimSpace(s[2])
-		rln := strings.TrimSpace(s[3])
-		id := strings.TrimSpace(s[0])
+	f.readCsv("routes.txt", func(s map[string]interface{}) {
+		rsn := strings.TrimSpace(s["route_short_name"].(string))
+		rln := strings.TrimSpace(s["route_long_name"].(string))
+		id := strings.TrimSpace(s["route_id"].(string))
 		f.Routes[id] = &Route{Id: id, ShortName: rsn, LongName: rln}
 	})
 
-	f.readCsv("trips.txt", func(s []string) {
-		route_id := s[0]
-		service := s[1]
-		trip_id := s[2]
-		direction := s[4]
-		shape_id := s[6]
-		headsign := s[3]
+	f.readCsv("trips.txt", func(s map[string]interface{}) {
+		route_id := s["route_id"].(string)
+		service := s["service_id"].(string)
+		trip_id := s["trip_id"].(string)
+		direction := s["direction_id"].(string)
+		shape_id := s["shape_id"].(string)
+		headsign := s["trip_headsign"].(string)
 
 		var shape *Shape
 		shape = f.Shapes[shape_id]
@@ -175,11 +182,11 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 		f.Routes[route_id] = route
 	})
 
-	f.readCsv("stops.txt", func(s []string) {
-		stop_id := s[0]
-		stop_name := s[1]
-		stop_lat, _ := strconv.ParseFloat(s[3], 64)
-		stop_lon, _ := strconv.ParseFloat(s[4], 64)
+	f.readCsv("stops.txt", func(s map[string]interface{}) {
+		stop_id := s["stop_id"].(string)
+		stop_name := s["stop_name"].(string)
+		stop_lat, _ := strconv.ParseFloat(s["stop_lat"].(string), 64)
+		stop_lon, _ := strconv.ParseFloat(s["stop_lon"].(string), 64)
 		coord := Coord{Lat: stop_lat, Lon: stop_lon}
 		f.Stops[stop_id] = &Stop{Coord: coord, Name: stop_name, Id: stop_id}
 	})
@@ -187,11 +194,11 @@ func Load(feed_path string, loadStopTimes bool) Feed {
 	if !loadStopTimes {
 		return f
 	}
-	f.readCsv("stop_times.txt", func(s []string) {
-		trip_id := s[0]
-		stop_id := s[3]
-		seq, _ := strconv.Atoi(s[4])
-		time := Hmstoi(s[1])
+	f.readCsv("stop_times.txt", func(s map[string]interface{}) {
+		trip_id := s["trip_id"].(string)
+		stop_id := s["stop_id"].(string)
+		seq, _ := strconv.Atoi(s["stop_sequence"].(string))
+		time := Hmstoi(s["arrival_time"].(string))
 		stop := f.Stops[stop_id]
 		trip := f.Trips[trip_id]
 		newStopTime := StopTime{Trip: trip, Stop: stop, Seq: seq, Time: time}
